@@ -14,15 +14,17 @@ for i = 1:length(filePattern)
 end
 
 s = 682*1023; 
-for numberOfImg = 1:size(image,2)
-    reshapedImageR{numberOfImg} = reshape(im{numberOfImg}(:,:,1),[s,1]);
-    reshapedImageG{numberOfImg} = reshape(im{numberOfImg}(:,:,2),[s,1]);
-    reshapedImageB{numberOfImg} = reshape(im{numberOfImg}(:,:,3),[s,1]); 
+%s = size(image1, 1) * size(image1, 2);
+for nrOfImages = 1:size(image,2)
+    reshapedImageR{nrOfImages} = reshape(im{nrOfImages}(:,:,1),[s,1]);
+    reshapedImageG{nrOfImages} = reshape(im{nrOfImages}(:,:,2),[s,1]);
+    reshapedImageB{nrOfImages} = reshape(im{nrOfImages}(:,:,3),[s,1]); 
 end
 
-Rcell = [reshapedImageR(:,1:numberOfImg)];
-Gcell = [reshapedImageG(:,1:numberOfImg)];
-Bcell = [reshapedImageB(:,1:numberOfImg)];
+% Add together each image, from each channel to one long row of the images
+Rcell = [reshapedImageR(:,1:nrOfImages)];
+Gcell = [reshapedImageG(:,1:nrOfImages)];
+Bcell = [reshapedImageB(:,1:nrOfImages)];
 R = cell2mat(Rcell);
 G = cell2mat(Gcell);
 B = cell2mat(Bcell);
@@ -34,13 +36,13 @@ l = 100;
 % x = round(1000*rand);
 % x = 1000;
 % sample = randperm(size(R,1),x);
- 
-%take 1000 evenly distributed pixels
+
+%take evenly distributed pixels
 sample_even = (1:300:size(R,1));
 x = size(sample_even,2);
-R_sub = zeros(x,numberOfImg);
-G_sub = zeros(x,numberOfImg);
-B_sub = zeros(x,numberOfImg);
+R_sub = zeros(x,nrOfImages);
+G_sub = zeros(x,nrOfImages);
+B_sub = zeros(x,nrOfImages);
 
 % for j=1:x
 %     R_sub(j,:) = R(sample(j),:);
@@ -54,28 +56,141 @@ for k=1:x
     B_sub(k,:) = B(sample_even(k),:);
 end
 
+%Ax=B, get the B
+%b is the exposures for each image. Use the info on the image later pls.
+b  = [1/60;1/30;1/15;1/8;1/4;1/2];
+%fix exposures to be of nrOfImages
+
+b = log(b);
+b1 = zeros(x*nrOfImages,nrOfImages);
+for j=1:size(b,1)
+    b1(:,j) = b(j);
+end
+
+% b1 The log exposure for each image
+
+% Calculate the weights 
 W = zeros(256,1);
 for i=1:256
     W(i) = weight(i);
 end
 
-%Ax=B, get the B
-b  = [1/60;1/30;1/15;1/8;1/4;1/2];
-b = log(b);
-b1 = zeros(x*numberOfImg,numberOfImg);
-for j=1:size(b,1)
-    b1(:,j) = b(j);
-end
+% Use the HDR function to get the responsfunctions 
+% g_RGB(z) is the log exposure corresponding to pixel value z
+% lE_RGB(i) is the log film irradiance at pixel location i
 
 [g_R,lE_R] = gsolve(R_sub,b1,l,W);
 [g_G,lE_G] = gsolve(G_sub,b1,l,W);
 [g_B,lE_B] = gsolve(B_sub,b1,l,W);
 
-X_R = zeros(x,numberOfImg);
-for k=1:numberOfImg
-X_R(:,k) = lE_R + b1(1:x,k);
+
+%X_R = zeros(x,6);
+%for k=1:6
+%X_R(:,k) = lE_R + b1(1:x,k);
+%end
+
+%% Radiance map
+sum_R = 0;
+sum_G = 0;
+sum_B = 0;
+
+eR = zeros(s,nrOfImages);
+eG = zeros(s,nrOfImages);
+eB = zeros(s,nrOfImages);
+
+for m = 1:256
+    for n = 1:nrOfImages
+        %Finding all the color values in the channel (0-255) and return the
+        %index
+        indices_R = find(R(:,n) == m-1);
+        indices_G = find(G(:,n) == m-1);
+        indices_B = find(B(:,n) == m-1);
+        
+        % Responsfunction minus exponering i det indexet
+        % equation 5 in the paper. "Radiance value"
+        eR(indices_R,n) = g_R(m)-b(n);
+        eG(indices_G,n) = g_G(m)-b(n);
+        eB(indices_B,n) = g_B(m)-b(n);
+    end
 end
 
+% Add all color channels together for each pixel
+for n1 = 1:nrOfImages
+    sum_R = sum_R + eR(:,n1);
+    sum_G = sum_G + eG(:,n1);
+    sum_B = sum_B + eB(:,n1);
+end
+
+% takes the median for each pixel of each image in each channel.
+radiance_mapR = sum_R/nrOfImages;
+radiance_mapG = sum_G/nrOfImages;
+radiance_mapB = sum_B/nrOfImages;
+
+radiance_mapR = reshape(radiance_mapR,[size(image1,1),size(image1,2)]);
+radiance_mapG = reshape(radiance_mapG,[size(image1,1),size(image1,2)]);
+radiance_mapB = reshape(radiance_mapB,[size(image1,1),size(image1,2)]);
+
+EnormR = zeros(size(image1,1),size(image1,2));
+EnormG = zeros(size(image1,1),size(image1,2));
+EnormB = zeros(size(image1,1),size(image1,2));
+
+minE = min([min(radiance_mapR(:)),min(radiance_mapG(:)),min(radiance_mapB(:))]);
+maxE = max([max(radiance_mapR(:)),max(radiance_mapG(:)),max(radiance_mapB(:))]);
+
+%normalization to be able to gamma (Jacobs killgissning)
+for k = 1:size(image1,1) 
+   for l = 1:size(image1,2)
+         EnormR(k,l) = (radiance_mapR(k,l)-minE)/(maxE-minE);
+         EnormG(k,l) = (radiance_mapG(k,l)-minE)/(maxE-minE);
+         EnormB(k,l) = (radiance_mapB(k,l)-minE)/(maxE-minE);
+   end
+end
+
+% Gamma correction: in book: eq: 10.9
+% gamma = regulates the contrast lower value lower constra
+% alpha < 1 decresing the exposure
+
+gamma = 0.5;
+A = 0.75;
+
+EgammaR = A*EnormR.^gamma;
+EgammaG = A*EnormG.^gamma;
+EgammaB = A*EnormB.^gamma;
+
+imageGamma = cat(3,EgammaR,EgammaG,EgammaB);
+%% Tonemapping
+Enorm3 = cat(3,EnormR,EnormG,EnormB);
+
+
+M = tonemap(Enorm3, image1);
+
+Rnew = zeros(size(image1,1),size(image1,2));
+Gnew = zeros(size(image1,1),size(image1,2));
+Bnew = zeros(size(image1,1),size(image1,2));
+
+% Adding the tonemap to the final Image
+for k3 = 1:size(image1,1)
+    for k4 = 1:size(image1,2)
+        Rnew(k3,k4) = M(k3,k4)*EnormR(k3,k4);
+        Gnew(k3,k4) = M(k3,k4)*EnormG(k3,k4);
+        Bnew(k3,k4) = M(k3,k4)*EnormB(k3,k4);
+    end
+end
+
+newI = cat(3,Rnew,Gnew,Bnew);
+
+% Gamma Image
+figure
+imshow(imageGamma)
+title('Gamma')
+
+% Filter 'Reinhard*
+figure
+imshow (newI) % M = Ltone./L1;
+title ('Reinhard')
+
+
+%% Plots
 subplot(2,2,1)
 plot(g_R,(0:255),'r')
 title('Response curve - Red')
@@ -103,102 +218,6 @@ plot(g_B,(0:255),'b')
 % plot(X_R(:,2),R_sub(:,2),'.')
 % hold off
 
-%%radiance map
-sum_R = 0;
-sum_G = 0;
-sum_B = 0;
-
-eR = zeros(s,numberOfImg);
-eG = zeros(s,numberOfImg);
-eB = zeros(s,numberOfImg);
-
-for m = 1:256
-    for n = 1:numberOfImg
-        indices_R = find(R(:,n) == m-1);
-        indices_G = find(G(:,n) == m-1);
-        indices_B = find(B(:,n) == m-1);
-
-        eR(indices_R,n) = g_R(m)-b(n);
-        eG(indices_G,n) = g_G(m)-b(n);
-        eB(indices_B,n) = g_B(m)-b(n);
-    end
-end
-
-for n1 = 1:numberOfImg
-    sum_R = sum_R + eR(:,n1);
-    sum_G = sum_G + eG(:,n1);
-    sum_B = sum_B + eB(:,n1);
-end
-
-W_R = W(R+1);
-W_G = W(G+1);
-W_B = W(B+1);
-
-radiance_mapR = sum_R/numberOfImg;
-radiance_mapG = sum_G/numberOfImg;
-radiance_mapB = sum_B/numberOfImg;
 
 
-radiance_mapR = reshape(radiance_mapR,[682,1023]);
-radiance_mapG = reshape(radiance_mapG,[682,1023]);
-radiance_mapB = reshape(radiance_mapB,[682,1023]);
 
-delta = 7;
-% radiance = cat(3,radiance_mapR,radiance_mapG,radiance_mapB);
-% h = heatmap(radiance,'x','y','symmetric','false');
-
-L_w = 0.2126*radiance_mapR+0.7152*radiance_mapG+0.0722*radiance_mapB;
- L_w_bar = exp(mean(log(L_w(:) + delta))); %%% delta is a small number
- L = (0.045/L_w_bar)*L_w;
- 
-%%% 0.18 is the middle-grey key value;
-%%% You may set the value to 0.09, 0.36, 0.54, 0.72.
- %heatmap(flipud(L), 'colormap', 'jet', 'symmetric', 'false')
-
- EnormR = zeros(682,1023);
- EnormG = zeros(682,1023);
- EnormB = zeros(682,1023);
- minE = min([min(radiance_mapR(:)),min(radiance_mapG(:)),min(radiance_mapB(:))]);
- maxE = max([max(radiance_mapR(:)),max(radiance_mapG(:)),max(radiance_mapB(:))]);
- 
-%normalization
-for k = 1:682 
-   for l = 1:1023
-         EnormR(k,l) = (radiance_mapR(k,l)-minE)/(maxE-minE);
-         EnormG(k,l) = (radiance_mapG(k,l)-minE)/(maxE-minE);
-         EnormB(k,l) = (radiance_mapB(k,l)-minE)/(maxE-minE);
-   end
-end
-
-%%gamma correction
-gamma = 0.5;
-A = 0.75;
-EgammaR = A*EnormR.^gamma;
-EgammaG = A*EnormG.^gamma;
-EgammaB = A*EnormB.^gamma;
-
-imageGamma = cat(3,EgammaR,EgammaG,EgammaB);
-figure
-imshow(imageGamma)
-title('Gamma')
-
-Enorm3 = cat(3,EnormR,EnormG,EnormB);
- M = tonemap(Enorm3);
-
-
-Rnew = zeros(682,1023);
-Gnew = zeros(682,1023);
-Bnew = zeros(682,1023);
-
-for k3 = 1:682
-    for k4 = 1:1023
-        Rnew(k3,k4) = M(k3,k4)*EnormR(k3,k4);
-        Gnew(k3,k4) = M(k3,k4)*EnormG(k3,k4);
-        Bnew(k3,k4) = M(k3,k4)*EnormB(k3,k4);
-    end
-end
-
-newI = cat(3,Rnew,Gnew,Bnew);
-figure
-imshow (newI)% M = Ltone./L1;
-title ('Reinhard')
