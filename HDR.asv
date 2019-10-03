@@ -1,37 +1,27 @@
 clc
 clear all;
 
-% Read in pictures from folder
-cd images
-folderPath = pwd 
-cd ..
-filePattern = dir(fullfile(folderPath, '*.jpg'));
+image6 = imread('2.jpg');
+image5 = imread('2.jpg');
+image4 = imread('1.jpg');
+image3 = imread('1.jpg');
+image2 = imread('0.jpg');
+image1 = imread('0.jpg');
 
-for i = 1:length(filePattern)
-    fileName = filePattern(i).name;
-    fullName = fullfile(folderPath, fileName);
-    fprintf(1, 'Reading images %s\n', fullName);
-    image{i} = imread(fullName);
-    im{i} = double(image{i});
-end
+im1 = double(image1);
+im2 = double(image2);
+im3 = double(image3);
+im4 = double(image4);
+im5 = double(image5);
+im6 = double(image6);
 
-%s = 682*1023; 
-s = size(im{1}, 1) * size(im{i}, 2);
-image1 = im{1};
-
-for nrOfImages = 1:size(image,2)
-    reshapedImageR{nrOfImages} = reshape(im{nrOfImages}(:,:,1),[s,1]);
-    reshapedImageG{nrOfImages} = reshape(im{nrOfImages}(:,:,2),[s,1]);
-    reshapedImageB{nrOfImages} = reshape(im{nrOfImages}(:,:,3),[s,1]); 
-end
+s = size(image1, 1) * size(image1, 2);
+nrOfImages = 6;
 
 % Add together each image, from each channel to one long row of the images
-Rcell = [reshapedImageR(:,1:nrOfImages)];
-Gcell = [reshapedImageG(:,1:nrOfImages)];
-Bcell = [reshapedImageB(:,1:nrOfImages)];
-R = cell2mat(Rcell);
-G = cell2mat(Gcell);
-B = cell2mat(Bcell);
+R = [reshape(im1(:,:,1),[s,1]),reshape(im2(:,:,1),[s,1]),reshape(im3(:,:,1),[s,1]),reshape(im4(:,:,1),[s,1]),reshape(im5(:,:,1),[s,1]),reshape(im6(:,:,1),[s,1])];
+G = [reshape(im1(:,:,2),[s,1]),reshape(im2(:,:,2),[s,1]),reshape(im3(:,:,2),[s,1]),reshape(im4(:,:,2),[s,1]),reshape(im5(:,:,2),[s,1]),reshape(im6(:,:,2),[s,1])];
+B = [reshape(im1(:,:,3),[s,1]),reshape(im2(:,:,3),[s,1]),reshape(im3(:,:,3),[s,1]),reshape(im4(:,:,3),[s,1]),reshape(im5(:,:,3),[s,1]),reshape(im6(:,:,3),[s,1])];
 
 %lambda in [1,5]
 l = 100;
@@ -54,10 +44,10 @@ B_sub = zeros(x,nrOfImages);
 %     B_sub(j,:) = B(sample(j),:);
 % end
 
-for k=1:x
-    R_sub(k,:) = R(sample_even(k),:);
-    G_sub(k,:) = G(sample_even(k),:);
-    B_sub(k,:) = B(sample_even(k),:);
+for j=1:x
+    R_sub(j,:) = R(sample_even(j),:);
+    G_sub(j,:) = G(sample_even(j),:);
+    B_sub(j,:) = B(sample_even(j),:);
 end
 
 %Ax=B, get the B
@@ -171,7 +161,7 @@ Enorm3 = cat(3,EnormR,EnormG,EnormB);
 %ReinhardTMO <- crazy
 %SchlickTMO <- Inverted
 %KuangTMO <- Mörka kontraster
-M = ReinhardTMO(Enorm3);
+M = AshikhminTMO(imageGamma);
 
 Rnew = zeros(size(image1,1),size(image1,2));
 Gnew = zeros(size(image1,1),size(image1,2));
