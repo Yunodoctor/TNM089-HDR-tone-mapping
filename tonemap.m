@@ -23,15 +23,9 @@ for p=1:size(image,1)
     end
 end
 
-<<<<<<< HEAD
-M = zeros(682,1023);
-for k1 = 1:682
-    for k2 = 1:1023
-=======
 M = zeros(size(image,1),size(image,2));
 for k1 = 1:size(image,1)
     for k2 = 1:size(image,2)
->>>>>>> b108c6e4b4f3276562829b224d252f75b3b62d1f
         M(k1,k2) = Ltone(k1,k2)/L1(k1,k2);
     end
 end
