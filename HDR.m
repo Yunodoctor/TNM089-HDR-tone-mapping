@@ -155,8 +155,13 @@ imageGamma = cat(3,EgammaR,EgammaG,EgammaB);
 %% Tonemapping
 Enorm3 = cat(3,EnormR,EnormG,EnormB);
 
-
-M = tonemap(Enorm3, image1);
+%DurandTMO
+%GammaTMO
+%KimKautzConsistentTMO
+%ReinhardTMO <- crazy
+%SchlickTMO <- Inverted
+%KuangTMO <- Mörka kontraster
+M = ReinhardTMO(Enorm3);
 
 Rnew = zeros(size(image1,1),size(image1,2));
 Gnew = zeros(size(image1,1),size(image1,2));
@@ -181,7 +186,7 @@ title('Gamma')
 % Filter 'Reinhard*
 figure
 imshow (newI) % M = Ltone./L1;
-title ('Reinhard')
+title ('TONE MAPPED')
 
 
 %% Plots
