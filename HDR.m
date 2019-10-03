@@ -1,5 +1,6 @@
 clc
 clear all;
+
 image6 = imread('2.jpg');
 image5 = imread('2.jpg');
 image4 = imread('1.jpg');
@@ -14,7 +15,9 @@ im4 = double(image4);
 im5 = double(image5);
 im6 = double(image6);
 
-s = 682*1023; 
+s = size(image1, 1) * size(image1, 2);
+nrOfImages = 6;
+
 % Add together each image, from each channel to one long row of the images
 R = [reshape(im1(:,:,1),[s,1]),reshape(im2(:,:,1),[s,1]),reshape(im3(:,:,1),[s,1]),reshape(im4(:,:,1),[s,1]),reshape(im5(:,:,1),[s,1]),reshape(im6(:,:,1),[s,1])];
 G = [reshape(im1(:,:,2),[s,1]),reshape(im2(:,:,2),[s,1]),reshape(im3(:,:,2),[s,1]),reshape(im4(:,:,2),[s,1]),reshape(im5(:,:,2),[s,1]),reshape(im6(:,:,2),[s,1])];
@@ -31,9 +34,9 @@ l = 100;
 %take evenly distributed pixels
 sample_even = (1:300:size(R,1));
 x = size(sample_even,2);
-R_sub = zeros(x,6);
-G_sub = zeros(x,6);
-B_sub = zeros(x,6);
+R_sub = zeros(x,nrOfImages);
+G_sub = zeros(x,nrOfImages);
+B_sub = zeros(x,nrOfImages);
 
 % for j=1:x
 %     R_sub(j,:) = R(sample(j),:);
@@ -50,15 +53,17 @@ end
 %Ax=B, get the B
 %b is the exposures for each image. Use the info on the image later pls.
 b  = [1/60;1/30;1/15;1/8;1/4;1/2];
+%fix exposures to be of nrOfImages
+
 b = log(b);
-b1 = zeros(x*6,6);
+b1 = zeros(x*nrOfImages,nrOfImages);
 for j=1:size(b,1)
     b1(:,j) = b(j);
 end
 
 % b1 The log exposure for each image
 
-% Calculate the weights
+% Calculate the weights 
 W = zeros(256,1);
 for i=1:256
     W(i) = weight(i);
@@ -83,12 +88,12 @@ sum_R = 0;
 sum_G = 0;
 sum_B = 0;
 
-eR = zeros(s,6);
-eG = zeros(s,6);
-eB = zeros(s,6);
+eR = zeros(s,nrOfImages);
+eG = zeros(s,nrOfImages);
+eB = zeros(s,nrOfImages);
 
 for m = 1:256
-    for n = 1:6
+    for n = 1:nrOfImages
         %Finding all the color values in the channel (0-255) and return the
         %index
         indices_R = find(R(:,n) == m-1);
@@ -104,31 +109,31 @@ for m = 1:256
 end
 
 % Add all color channels together for each pixel
-for n1 = 1:6
+for n1 = 1:nrOfImages
     sum_R = sum_R + eR(:,n1);
     sum_G = sum_G + eG(:,n1);
     sum_B = sum_B + eB(:,n1);
 end
 
 % takes the median for each pixel of each image in each channel.
-radiance_mapR = sum_R/6;
-radiance_mapG = sum_G/6;
-radiance_mapB = sum_B/6;
+radiance_mapR = sum_R/nrOfImages;
+radiance_mapG = sum_G/nrOfImages;
+radiance_mapB = sum_B/nrOfImages;
 
-radiance_mapR = reshape(radiance_mapR,[682,1023]);
-radiance_mapG = reshape(radiance_mapG,[682,1023]);
-radiance_mapB = reshape(radiance_mapB,[682,1023]);
+radiance_mapR = reshape(radiance_mapR,[size(image1,1),size(image1,2)]);
+radiance_mapG = reshape(radiance_mapG,[size(image1,1),size(image1,2)]);
+radiance_mapB = reshape(radiance_mapB,[size(image1,1),size(image1,2)]);
 
-EnormR = zeros(682,1023);
-EnormG = zeros(682,1023);
-EnormB = zeros(682,1023);
+EnormR = zeros(size(image1,1),size(image1,2));
+EnormG = zeros(size(image1,1),size(image1,2));
+EnormB = zeros(size(image1,1),size(image1,2));
 
 minE = min([min(radiance_mapR(:)),min(radiance_mapG(:)),min(radiance_mapB(:))]);
 maxE = max([max(radiance_mapR(:)),max(radiance_mapG(:)),max(radiance_mapB(:))]);
 
 %normalization to be able to gamma (Jacobs killgissning)
-for k = 1:682 
-   for l = 1:1023
+for k = 1:size(image1,1) 
+   for l = 1:size(image1,2)
          EnormR(k,l) = (radiance_mapR(k,l)-minE)/(maxE-minE);
          EnormG(k,l) = (radiance_mapG(k,l)-minE)/(maxE-minE);
          EnormB(k,l) = (radiance_mapB(k,l)-minE)/(maxE-minE);
@@ -147,17 +152,19 @@ EgammaG = A*EnormG.^gamma;
 EgammaB = A*EnormB.^gamma;
 
 imageGamma = cat(3,EgammaR,EgammaG,EgammaB);
-
+%% Tonemapping
 Enorm3 = cat(3,EnormR,EnormG,EnormB);
-M = tonemap(Enorm3);
 
-Rnew = zeros(682,1023);
-Gnew = zeros(682,1023);
-Bnew = zeros(682,1023);
+
+M = tonemap(Enorm3, image1);
+
+Rnew = zeros(size(image1,1),size(image1,2));
+Gnew = zeros(size(image1,1),size(image1,2));
+Bnew = zeros(size(image1,1),size(image1,2));
 
 % Adding the tonemap to the final Image
-for k3 = 1:682
-    for k4 = 1:1023
+for k3 = 1:size(image1,1)
+    for k4 = 1:size(image1,2)
         Rnew(k3,k4) = M(k3,k4)*EnormR(k3,k4);
         Gnew(k3,k4) = M(k3,k4)*EnormG(k3,k4);
         Bnew(k3,k4) = M(k3,k4)*EnormB(k3,k4);
