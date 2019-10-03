@@ -3,8 +3,11 @@ clear all;
 
 % Read in pictures from folder
 cd images
-folderPath = pwd 
+cd Seine
+folderPath = pwd;
 cd ..
+cd ..
+
 filePattern = dir(fullfile(folderPath, '*.jpg'));
 
 for i = 1:length(filePattern)
@@ -14,7 +17,6 @@ for i = 1:length(filePattern)
     image{i} = imread(fullName);
     im{i} = double(image{i});
 end
-
 %s = 682*1023; 
 s = size(im{1}, 1) * size(im{i}, 2);
 image1 = im{1};
@@ -171,7 +173,7 @@ Enorm3 = cat(3,EnormR,EnormG,EnormB);
 %ReinhardTMO <- crazy
 %SchlickTMO <- Inverted
 %KuangTMO <- Mörka kontraster
-M = ReinhardTMO(Enorm3);
+M = ReinhardDevlinTMO(Enorm3);
 
 Rnew = zeros(size(image1,1),size(image1,2));
 Gnew = zeros(size(image1,1),size(image1,2));
@@ -195,7 +197,7 @@ title('Gamma')
 
 % Filter 'Reinhard*
 figure
-imshow (newI) % M = Ltone./L1;
+imshow (colormap(newI,'hot')) % M = Ltone./L1;
 title ('TONE MAPPED')
 
 

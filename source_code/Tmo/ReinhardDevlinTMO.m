@@ -102,7 +102,7 @@ if(bNormalization)
     L = lum(imgOut);
     Lmax = max(L(:));
     Lmin = min(L(:));
-    delta = Lmax - LMin;
+    delta = Lmax - Lmin;
     if(delta > 0.0)
         imgOut = ClampImg((imgOut - Lmin) / delta, 0, 1);
     end
