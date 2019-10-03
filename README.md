@@ -1,4 +1,3 @@
-# HDR_Construction
-Construct an HDR image with multiple LDR images
+# TNM089 - HDR Tone mapping
 
-Please check "Steps & Results.pdf" for more details.
+A project in the course TNM089, with focus on Tone mapping.
