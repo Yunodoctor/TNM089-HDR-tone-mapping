@@ -2,22 +2,21 @@ clc
 clear all;
 
 % Read in pictures from folder
+
 cd images
-cd Seine
-folderPath = pwd;
-cd ..
-cd ..
+cd ReflectionBall
 
-filePattern = dir(fullfile(folderPath, '*.jpg'));
-
-for i = 1:length(filePattern)
-    fileName = filePattern(i).name;
-    fullName = fullfile(folderPath, fileName);
+for i = 1:numel(dir('*.jpg'))
+    fullName = strcat('image (',num2str(i),').jpg');
     fprintf(1, 'Reading images %s\n', fullName);
+    imageInfo{i} = fullfile(pwd, fullName);
     image{i} = imread(fullName);
     im{i} = double(image{i});
 end
-%s = 682*1023; 
+
+cd ..
+cd ..
+
 s = size(im{1}, 1) * size(im{i}, 2);
 image1 = im{1};
 
@@ -64,7 +63,19 @@ end
 
 %Ax=B, get the B
 %b is the exposures for each image. Use the info on the image later pls.
-b  = [1/60;1/30;1/15;1/8;1/4;1/2];
+
+%%
+for exposures = 1:nrOfImages
+    info = imfinfo(imageInfo{exposures});
+    expoTimeArray(exposures) = info.DigitalCamera.ExposureTime;
+end
+%%
+if(~im)
+    b  = [1/60;1/30;1/15;1/8;1/4;1/2];
+else
+    imgggag-adasdsla
+end
+   
 %fix exposures to be of nrOfImages
 
 b = log(b);
