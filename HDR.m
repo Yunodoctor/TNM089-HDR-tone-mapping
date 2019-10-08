@@ -4,13 +4,13 @@ clear all;
 % Read in pictures from folder
 
 cd images
-cd ReflectionBall
+cd ClockTower
 
 for i = 1:numel(dir('*.jpg'))
     fullName = strcat('image (',num2str(i),').jpg');
     fprintf(1, 'Reading images %s\n', fullName);
     imageInfo{i} = fullfile(pwd, fullName);
-    image{i} = imread(fullName);
+    image{i} = imresize(imread(fullName), 0.5);
     im{i} = double(image{i});
 end
 
@@ -70,11 +70,9 @@ for exposures = 1:nrOfImages
     expoTimeArray(exposures) = info.DigitalCamera.ExposureTime;
 end
 %%
-if(~im)
-    b  = [1/60;1/30;1/15;1/8;1/4;1/2];
-else
-    imgggag-adasdsla
-end
+b = expoTimeArray;
+%b  = [1/60;1/30;1/15;1/8;1/4;1/2];
+
    
 %fix exposures to be of nrOfImages
 
@@ -184,7 +182,12 @@ Enorm3 = cat(3,EnormR,EnormG,EnormB);
 %ReinhardTMO <- crazy
 %SchlickTMO <- Inverted
 %KuangTMO <- Mörka kontraster
-M = ReinhardDevlinTMO(Enorm3);
+%ReinhardDevlinTMO
+%M = GammaTMO(ReinhardDevlinTMO(Enorm3,0.2), 5, 3.5, false);
+
+M = GammaTMO(ReinhardTMO(Enorm3,0.2,-2,'global'));
+
+
 
 Rnew = zeros(size(image1,1),size(image1,2));
 Gnew = zeros(size(image1,1),size(image1,2));
@@ -202,14 +205,21 @@ end
 newI = cat(3,Rnew,Gnew,Bnew);
 
 % Gamma Image
-figure
-imshow(imageGamma)
-title('Gamma')
+%figure
+%imshow(imageGamma)
+%title('Gamma')
 
 % Filter 'Reinhard*
 figure
-imshow (colormap(newI,'hot')) % M = Ltone./L1;
+imshow (newI) % M = Ltone./L1;
 title ('TONE MAPPED')
+
+% Radiance map
+%rmi(:,:,1) = radiance_mapR;
+%rmi(:,:,2) =  radiance_mapG;
+%rmi(:,:,3) =  radiance_mapB;
+%imshow(rmi)
+%title('Radiance Map')
 
 
 %% Plots
