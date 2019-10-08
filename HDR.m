@@ -10,8 +10,13 @@ for i = 1:numel(dir('*.jpg'))
     fullName = strcat('image (',num2str(i),').jpg');
     fprintf(1, 'Reading images %s\n', fullName);
     imageInfo{i} = fullfile(pwd, fullName);
-    image{i} = imresize(imread(fullName), 0.5);
-    im{i} = double(image{i});
+    image{i} = imread(fullName);
+    imgCropped{i} = imcrop(image{i}, [2000 2000 900 700]);
+    im{i} = double(imgCropped{i});
+    %imgResized{i} = imresize(image{i}, [1000 1500]);
+    %im{i} = double(imgResized{i});
+%     imgResized{i} = imresize(image{i}, [1000 1500]);
+%     im{i} = double(imgResized{i});
 end
 
 cd ..
@@ -69,6 +74,8 @@ for exposures = 1:nrOfImages
     info = imfinfo(imageInfo{exposures});
     expoTimeArray(exposures) = info.DigitalCamera.ExposureTime;
 end
+
+b = expoTimeArray;
 %%
 b = expoTimeArray;
 %b  = [1/60;1/30;1/15;1/8;1/4;1/2];
@@ -181,7 +188,7 @@ Enorm3 = cat(3,EnormR,EnormG,EnormB);
 %KimKautzConsistentTMO
 %ReinhardTMO <- crazy
 %SchlickTMO <- Inverted
-%KuangTMO <- Mörka kontraster
+%KuangTMO <- Mï¿½rka kontraster
 %ReinhardDevlinTMO
 %M = GammaTMO(ReinhardDevlinTMO(Enorm3,0.2), 5, 3.5, false);
 
