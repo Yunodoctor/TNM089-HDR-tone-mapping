@@ -4,14 +4,14 @@ clear all;
 % Read in pictures from folder
 
 cd images
-cd ClockTower
+cd LouisDegeer2
 
 for i = 1:numel(dir('*.jpg'))
     fullName = strcat('image (',num2str(i),').jpg');
     fprintf(1, 'Reading images %s\n', fullName);
     imageInfo{i} = fullfile(pwd, fullName);
     image{i} = imread(fullName);
-    imgCropped{i} = imcrop(image{i}, [1700 1500 1200 900]);
+    imgCropped{i} = imcrop(image{i}, [1000 1000 900 700]);
     im{i} = double(imgCropped{i});
    % imgResized{i} = imresize(image{i}, 0.1);
    % im{i} = double(imgResized{i});
