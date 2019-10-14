@@ -11,12 +11,11 @@ for i = 1:numel(dir('*.jpg'))
     fprintf(1, 'Reading images %s\n', fullName);
     imageInfo{i} = fullfile(pwd, fullName);
     image{i} = imread(fullName);
-    imgCropped{i} = imcrop(image{i}, [2000 2000 900 700]);
+    imgCropped{i} = imcrop(image{i}, [1700 1500 1200 900]);
     im{i} = double(imgCropped{i});
-    %imgResized{i} = imresize(image{i}, [1000 1500]);
-    %im{i} = double(imgResized{i});
-%     imgResized{i} = imresize(image{i}, [1000 1500]);
-%     im{i} = double(imgResized{i});
+   % imgResized{i} = imresize(image{i}, 0.1);
+   % im{i} = double(imgResized{i});
+
 end
 
 cd ..
@@ -43,28 +42,29 @@ B = cell2mat(Bcell);
 l = 100;
 
 %take 1000 random samples from R,G,B
-% x = round(1000*rand);
-% x = 1000;
-% sample = randperm(size(R,1),x);
-
+ x = round(1000*rand);
+ x = 1000;
+ sample = randperm(size(R,1),x);
+ 
 %take evenly distributed pixels
-sample_even = (1:300:size(R,1));
-x = size(sample_even,2);
-R_sub = zeros(x,nrOfImages);
-G_sub = zeros(x,nrOfImages);
-B_sub = zeros(x,nrOfImages);
+%sample_even = (1:300:size(R,1));
+%x = size(sample_even,2);
+%R_sub = zeros(x,nrOfImages);
+%G_sub = zeros(x,nrOfImages);
+%B_sub = zeros(x,nrOfImages);
 
-% for j=1:x
-%     R_sub(j,:) = R(sample(j),:);
-%     G_sub(j,:) = G(sample(j),:);
-%     B_sub(j,:) = B(sample(j),:);
-% end
+ for j=1:x
+     R_sub(j,:) = R(sample(j),:);
+     G_sub(j,:) = G(sample(j),:);
+     B_sub(j,:) = B(sample(j),:);
+ end
 
-for k=1:x
-    R_sub(k,:) = R(sample_even(k),:);
-    G_sub(k,:) = G(sample_even(k),:);
-    B_sub(k,:) = B(sample_even(k),:);
-end
+ 
+%for k=1:x %For evenly distrebuted pixels
+%    R_sub(k,:) = R(sample_even(k),:);
+%    G_sub(k,:) = G(sample_even(k),:);
+%    B_sub(k,:) = B(sample_even(k),:);
+%end
 
 %Ax=B, get the B
 %b is the exposures for each image. Use the info on the image later pls.
@@ -82,7 +82,6 @@ b = expoTimeArray;
 
    
 %fix exposures to be of nrOfImages
-
 b = log(b);
 b1 = zeros(x*nrOfImages,nrOfImages);
 for j=1:size(b,1)
@@ -152,6 +151,7 @@ radiance_mapR = reshape(radiance_mapR,[size(image1,1),size(image1,2)]);
 radiance_mapG = reshape(radiance_mapG,[size(image1,1),size(image1,2)]);
 radiance_mapB = reshape(radiance_mapB,[size(image1,1),size(image1,2)]);
 
+
 EnormR = zeros(size(image1,1),size(image1,2));
 EnormG = zeros(size(image1,1),size(image1,2));
 EnormB = zeros(size(image1,1),size(image1,2));
@@ -168,12 +168,15 @@ for k = 1:size(image1,1)
    end
 end
 
+
+
+%% Gamma Correction
 % Gamma correction: in book: eq: 10.9
 % gamma = regulates the contrast lower value lower constra
 % alpha < 1 decresing the exposure
 
-gamma = 0.5;
-A = 0.75;
+gamma = 0.7;
+A = 1;
 
 EgammaR = A*EnormR.^gamma;
 EgammaG = A*EnormG.^gamma;
@@ -188,13 +191,10 @@ Enorm3 = cat(3,EnormR,EnormG,EnormB);
 %KimKautzConsistentTMO
 %ReinhardTMO <- crazy
 %SchlickTMO <- Inverted
-%KuangTMO <- Mï¿½rka kontraster
-%ReinhardDevlinTMO
+%KuangTMO <- Mörka kontraster
 %M = GammaTMO(ReinhardDevlinTMO(Enorm3,0.2), 5, 3.5, false);
 
-M = GammaTMO(ReinhardTMO(Enorm3,0.2,-2,'global'));
-
-
+M = GammaTMO(ReinhardDevlinTMO(Enorm3,0.2), 5, 3.5, false); 
 
 Rnew = zeros(size(image1,1),size(image1,2));
 Gnew = zeros(size(image1,1),size(image1,2));
@@ -222,11 +222,23 @@ imshow (newI) % M = Ltone./L1;
 title ('TONE MAPPED')
 
 % Radiance map
-%rmi(:,:,1) = radiance_mapR;
-%rmi(:,:,2) =  radiance_mapG;
-%rmi(:,:,3) =  radiance_mapB;
-%imshow(rmi)
-%title('Radiance Map')
+% rmi(:,:,1) = radiance_mapR;
+% rmi(:,:,2) =  radiance_mapG;
+% rmi(:,:,3) =  radiance_mapB;
+% imshow(rmi)
+% title('Radiance Map')
+
+
+%% Kvallitetsmått
+
+% 1, Jämför mot tonmappade bilde newI.
+% 2, Jämför mot mitten i = image.length / 2, image{i}
+% 3, Jämför mot något med högt värde, HDR bilden?
+% 4, Enorm
+
+% HVS     
+% SSIM 
+% Scielab (xyz)
 
 
 %% Plots
